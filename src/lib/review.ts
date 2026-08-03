@@ -1,16 +1,23 @@
-/** Fixed ladder, deliberately simpler than SM-2: each review moves one rung up. */
-export const INTERVALS = [1, 3, 7, 16, 35] as const;
-
 const DAY = 24 * 60 * 60 * 1000;
 
-export function nextReview(currentInterval: number, from = new Date()) {
-  const step = Math.min(currentInterval, INTERVALS.length - 1);
-  const days = INTERVALS[step];
+export const MAX_REVIEW_DAYS = 3650;
+
+/** You choose the gap yourself: "4" means this time in four days, "0" means today. */
+export function scheduleInDays(days: number, from = new Date()) {
   return {
-    reviewInterval: Math.min(currentInterval + 1, INTERVALS.length - 1),
+    reviewInterval: days,
     lastReviewedAt: from,
     nextReviewAt: new Date(from.getTime() + days * DAY),
   };
+}
+
+export function isValidReviewDays(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= MAX_REVIEW_DAYS
+  );
 }
 
 export function describeDue(nextReviewAt: Date | null): string | null {

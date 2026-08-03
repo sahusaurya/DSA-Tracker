@@ -2,7 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { connection } from "next/server";
-import { and, asc, desc, eq, inArray, like, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, like, or, sql } from "drizzle-orm";
 import { db } from "./client";
 import {
   type Difficulty,
@@ -16,7 +16,7 @@ import {
   nodes,
   problems,
 } from "./schema";
-import { nextReview } from "@/lib/review";
+import { scheduleInDays } from "@/lib/review";
 import { slugify } from "@/lib/text";
 import { parseWikilinks } from "@/lib/wikilinks";
 
@@ -350,15 +350,8 @@ export function setProblemFields(
 
 /* --------------------------------- review --------------------------------- */
 
-export function markReviewed(id: string) {
-  const current = db
-    .select({ interval: problems.reviewInterval })
-    .from(problems)
-    .where(eq(problems.id, id))
-    .get();
-  if (!current) return;
-
-  db.update(problems).set(nextReview(current.interval)).where(eq(problems.id, id)).run();
+export function scheduleReview(id: string, days: number) {
+  db.update(problems).set(scheduleInDays(days)).where(eq(problems.id, id)).run();
 }
 
 export function resetReview(id: string) {
@@ -368,8 +361,8 @@ export function resetReview(id: string) {
     .run();
 }
 
-/** Everything due now, most overdue first. */
-export async function getDueProblems() {
+/** Everything you've scheduled, soonest first — overdue naturally lands at the top. */
+export async function getScheduledProblems() {
   await ready();
   const rows = db
     .select({
@@ -385,12 +378,16 @@ export async function getDueProblems() {
     })
     .from(problems)
     .innerJoin(nodes, eq(nodes.id, problems.id))
-    .where(lte(problems.nextReviewAt, new Date()))
+    .where(isNotNull(problems.nextReviewAt))
     .orderBy(asc(problems.nextReviewAt))
     .all();
 
+  const now = Date.now();
   const topics = getTopicsFor(rows.map((r) => r.id));
-  return rows.map((row) => ({ ...row, topics: topics.get(row.id) ?? [] }));
+  return {
+    problems: rows.map((row) => ({ ...row, topics: topics.get(row.id) ?? [] })),
+    overdue: rows.filter((row) => (row.nextReviewAt?.getTime() ?? Infinity) <= now).length,
+  };
 }
 
 /* ------------------------------ nodes & edges ----------------------------- */
@@ -537,6 +534,14 @@ export async function getGraph() {
       })
       .from(nodes)
       .leftJoin(problems, eq(problems.id, nodes.id))
+      // A topic nothing links to any more is clutter, not a cluster. Problems always
+      // show, so a new one is visible before you have linked it to anything.
+      .where(
+        or(
+          eq(nodes.kind, "problem"),
+          sql`exists (select 1 from ${edges} where ${edges.srcId} = ${nodes.id} or ${edges.dstId} = ${nodes.id})`,
+        ),
+      )
       .all(),
     edges: db
       .select({ source: edges.srcId, target: edges.dstId, kind: edges.kind })

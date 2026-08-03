@@ -1,23 +1,25 @@
 import { PageHeader } from "@/components/PageHeader";
 import { ProblemTable } from "@/components/ProblemTable";
-import { getDueProblems } from "@/db/queries";
+import { getScheduledProblems } from "@/db/queries";
 
 export default async function ReviewPage() {
-  const due = await getDueProblems();
+  const { problems: scheduled, overdue } = await getScheduledProblems();
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5 px-8 py-10">
       <PageHeader
         title="Review"
         subtitle={
-          due.length === 0
-            ? "Nothing due right now"
-            : `${due.length} problem${due.length === 1 ? "" : "s"} to revisit`
+          scheduled.length === 0
+            ? "Nothing scheduled yet"
+            : overdue > 0
+              ? `${overdue} due now · ${scheduled.length} scheduled`
+              : `${scheduled.length} scheduled, soonest first`
         }
       />
       <ProblemTable
-        problems={due}
-        empty="Mark a problem reviewed and it'll come back here when it's due."
+        problems={scheduled}
+        empty="Open a problem, say how many days until you want to see it again, and it'll show up here."
       />
     </div>
   );

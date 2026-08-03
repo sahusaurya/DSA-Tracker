@@ -1,15 +1,18 @@
 import { notFound } from "next/navigation";
+import { Breadcrumbs, type Crumb } from "@/components/Breadcrumbs";
 import { Connections } from "@/components/Connections";
 import { FileStrip } from "@/components/FileStrip";
 import { NotesEditor } from "@/components/NotesEditor";
 import { ProblemMeta } from "@/components/ProblemMeta";
-import { getNodeDetail, getProblemDetail } from "@/db/queries";
+import { getList, getNodeDetail, getProblemDetail } from "@/db/queries";
 import { getViewMode } from "@/lib/prefs.server";
 
 export default async function ProblemPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ problemId: string }>;
+  searchParams: Promise<{ list?: string }>;
 }) {
   const { problemId } = await params;
   const problem = await getProblemDetail(problemId);
@@ -18,8 +21,20 @@ export default async function ProblemPage({
   const node = await getNodeDetail(problemId);
   if (!node) notFound();
 
+  // Opened from a list, the way back runs through that list; otherwise straight home.
+  const { list: listId } = await searchParams;
+  const trail: Crumb[] = [{ label: "All problems", href: "/" }];
+  const list = listId ? await getList(listId) : null;
+  if (list) {
+    trail.push({
+      label: list.emoji ? `${list.emoji} ${list.name}` : list.name,
+      href: `/lists/${list.id}`,
+    });
+  }
+
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-8 py-10">
+      <Breadcrumbs trail={trail} />
       <ProblemMeta
         id={problem.id}
         title={problem.title}
@@ -28,6 +43,7 @@ export default async function ProblemPage({
         difficulty={problem.difficulty}
         status={problem.status}
         nextReviewAt={problem.nextReviewAt}
+        reviewDays={problem.reviewInterval}
       />
       <NotesEditor
         nodeId={problem.id}

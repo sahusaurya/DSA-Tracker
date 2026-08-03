@@ -10,7 +10,7 @@ import {
 
 const now = sql`(unixepoch() * 1000)`;
 
-export const NODE_KINDS = ["problem", "bundle", "topic"] as const;
+export const NODE_KINDS = ["problem", "topic"] as const;
 export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 export const STATUSES = ["todo", "attempted", "solved"] as const;
 export const EDGE_KINDS = ["wikilink", "manual", "membership"] as const;

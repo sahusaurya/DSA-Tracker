@@ -6,9 +6,12 @@ import { DifficultyPill, StatusChip, relativeTime } from "./ui";
 export function ProblemTable({
   problems,
   empty = "No problems yet.",
+  listId,
 }: {
   problems: ProblemSummary[];
   empty?: string;
+  /** Carried into the link so the problem page can offer a way back to this list. */
+  listId?: string;
 }) {
   if (problems.length === 0) {
     return (
@@ -23,7 +26,7 @@ export function ProblemTable({
       {problems.map((problem) => (
         <li key={problem.id}>
           <Link
-            href={`/problems/${problem.id}`}
+            href={listId ? `/problems/${problem.id}?list=${listId}` : `/problems/${problem.id}`}
             className="flex items-center gap-4 px-4 py-2.5 transition-colors hover:bg-surface-hover"
           >
             <span className="min-w-0 flex-1">

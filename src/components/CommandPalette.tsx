@@ -11,7 +11,6 @@ type Hit = { id: string; kind: NodeKind; title: string };
 const KIND_DOT: Record<NodeKind, string> = {
   problem: "bg-accent",
   topic: "bg-medium",
-  bundle: "bg-easy",
 };
 
 export function CommandPalette() {
@@ -86,7 +85,7 @@ export function CommandPalette() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Jump to a problem, topic, or bundle…"
+            placeholder="Jump to a problem or topic…"
             className="flex-1 bg-transparent text-sm outline-none"
           />
           <kbd className="rounded border border-border px-1.5 py-0.5 text-[10px] text-faint">

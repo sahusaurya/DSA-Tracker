@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { AddProblem } from "@/components/AddProblem";
+import { Breadcrumbs } from "@/components/Breadcrumbs";
 import { Filters } from "@/components/Filters";
 import { ListActions } from "@/components/ListActions";
 import { PageHeader } from "@/components/PageHeader";
@@ -23,6 +24,7 @@ export default async function ListPage({
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-5 px-8 py-10">
+      <Breadcrumbs trail={[{ label: "All problems", href: "/" }]} />
       <PageHeader
         title={
           <span className="flex items-center gap-2">
@@ -40,7 +42,7 @@ export default async function ListPage({
       <Suspense>
         <Filters />
       </Suspense>
-      <ProblemTable problems={problems} empty="Nothing in this list yet." />
+      <ProblemTable problems={problems} empty="Nothing in this list yet." listId={listId} />
     </div>
   );
 }

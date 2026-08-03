@@ -15,12 +15,10 @@ type Palette = Record<string, string>;
 const KIND_VAR: Record<NodeKind, string> = {
   problem: "--accent",
   topic: "--medium",
-  bundle: "--easy",
 };
 
-const KINDS: NodeKind[] = ["problem", "topic", "bundle"];
+const KINDS: NodeKind[] = ["problem", "topic"];
 const LABEL_ZOOM = 0.9;
-const MAX_ZOOM = 2.2;
 const FONT_STACK = "system-ui, -apple-system, sans-serif";
 
 function truncate(text: string, max = 26) {
@@ -38,7 +36,6 @@ function readPalette(): Palette {
   return {
     problem: pick("--accent") || "#3b6ef5",
     topic: pick("--medium") || "#b5730d",
-    bundle: pick("--easy") || "#16855c",
     muted: pick("--muted") || "#777",
     faint: pick("--faint") || "#aaa",
   };
@@ -53,6 +50,7 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
   const palette = useRef<Palette>({});
   const highlighted = useRef<Set<string> | null>(null);
   const navigate = useRef(router.push);
+  const detachPointer = useRef<(() => void) | null>(null);
   // The graph is created asynchronously, so the latest data must be readable on arrival.
   const latestData = useRef<{ nodes: GraphNode[]; links: GraphLink[] }>({ nodes: [], links: [] });
 
@@ -110,6 +108,78 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
     [],
   );
 
+  /**
+   * Hit-testing is done here rather than through force-graph's own pointer layer,
+   * which reads back pixels from an offscreen canvas and silently detects nothing on
+   * some setups — leaving nodes that look clickable but aren't. Comparing distances
+   * against the same radius the painter uses keeps the target exactly the drawn circle.
+   */
+  const nodeAt = useCallback((clientX: number, clientY: number): GraphNode | null => {
+    const graph = instance.current;
+    const element = host.current;
+    if (!graph || !element) return null;
+
+    const box = element.getBoundingClientRect();
+    const point = graph.screen2GraphCoords(clientX - box.left, clientY - box.top);
+
+    let closest: GraphNode | null = null;
+    let closestDistance = Infinity;
+    for (const node of latestData.current.nodes) {
+      const distance = Math.hypot((node.x ?? 0) - point.x, (node.y ?? 0) - point.y);
+      if (distance <= nodeRadius(node) + 3 && distance < closestDistance) {
+        closest = node;
+        closestDistance = distance;
+      }
+    }
+    return closest;
+  }, []);
+
+  const attachPointer = useCallback(
+    (element: HTMLDivElement) => {
+      // A pan or a node drag also ends in a click, so only a press that stayed put counts.
+      let pressedAt: { x: number; y: number } | null = null;
+
+      const onPointerDown = (event: PointerEvent) => {
+        pressedAt = { x: event.clientX, y: event.clientY };
+      };
+      const onClick = (event: MouseEvent) => {
+        // Only a press we actually saw travel counts as a drag; if the press never
+        // reached us, treat it as a plain click rather than swallowing it.
+        const dragged =
+          pressedAt !== null &&
+          Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) > 4;
+        pressedAt = null;
+        if (dragged) return;
+
+        const node = nodeAt(event.clientX, event.clientY);
+        if (node) navigate.current(nodeHref(node.kind, node.id));
+      };
+      const onMove = (event: MouseEvent) => {
+        element.style.cursor = nodeAt(event.clientX, event.clientY) ? "pointer" : "";
+      };
+      const onLeave = () => {
+        element.style.cursor = "";
+      };
+
+      // Capture phase: the zoom/drag behaviour on the canvas below stops these events
+      // from bubbling, so a listener waiting on the way up never hears the press.
+      const capture = { capture: true } as const;
+      element.addEventListener("pointerdown", onPointerDown, capture);
+      element.addEventListener("click", onClick, capture);
+      element.addEventListener("mousemove", onMove, capture);
+      element.addEventListener("mouseleave", onLeave);
+
+      return () => {
+        element.removeEventListener("pointerdown", onPointerDown, capture);
+        element.removeEventListener("click", onClick, capture);
+        element.removeEventListener("mousemove", onMove, capture);
+        element.removeEventListener("mouseleave", onLeave);
+        element.style.cursor = "";
+      };
+    },
+    [nodeAt],
+  );
+
   // Create the graph once; everything after is pushed in through the instance.
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +192,10 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
       palette.current = readPalette();
       graph = new ForceGraphCtor<GraphNode, GraphLink>(host.current)
         .backgroundColor("transparent")
+        // Pressing a node would otherwise begin a drag gesture, and the drag behaviour
+        // cancels the click that follows it — so the node could never be opened.
+        // Nodes here are for navigating, not rearranging.
+        .enableNodeDrag(false)
         .nodeRelSize(4)
         .nodeLabel((node) => node.title)
         .linkColor(() => palette.current.faint ?? "#aaa")
@@ -133,8 +207,7 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
           ctx.beginPath();
           ctx.arc(node.x ?? 0, node.y ?? 0, nodeRadius(node) + 3, 0, 2 * Math.PI);
           ctx.fill();
-        })
-        .onNodeClick((node) => navigate.current(nodeHref(node.kind, node.id)));
+        });
 
       graph.onEngineStop(() => graph?.zoomToFit(400, 60));
       graph.d3Force("charge")?.strength(-220).distanceMax(500);
@@ -145,22 +218,19 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
       graph.graphData(latestData.current);
 
       instance.current = graph;
+      detachPointer.current = attachPointer(host.current);
     })();
 
     return () => {
       cancelled = true;
+      detachPointer.current?.();
+      detachPointer.current = null;
       graph?._destructor();
       instance.current = null;
     };
-  }, [paintNode]);
+  }, [paintNode, attachPointer]);
 
-  // Fitting a handful of nodes would otherwise blow them up to fill the screen.
-  const fit = useCallback((durationMs = 400) => {
-    const graph = instance.current;
-    if (!graph) return;
-    graph.zoomToFit(durationMs, 50);
-    if (graph.zoom() > MAX_ZOOM) graph.zoom(MAX_ZOOM, durationMs);
-  }, []);
+  const fit = useCallback(() => instance.current?.zoomToFit(400, 50), []);
 
   // Push data in separately so filtering doesn't rebuild the whole graph.
   useEffect(() => {
@@ -170,11 +240,11 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
     // Keep the view fitted while the force layout expands, then leave it to the user.
     const start = Date.now();
     const timer = setInterval(() => {
-      fit(0);
+      instance.current?.zoomToFit(0, 50);
       if (Date.now() - start > 5000) clearInterval(timer);
     }, 300);
     return () => clearInterval(timer);
-  }, [data, fit]);
+  }, [data]);
 
   useEffect(() => {
     highlighted.current = matches;

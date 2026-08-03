@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { DIFFICULTIES, STATUSES, type Difficulty, type Status } from "@/db/schema";
-import { describeDue } from "@/lib/review";
+import { MAX_REVIEW_DAYS, describeDue } from "@/lib/review";
 import { IconExternal, IconTrash } from "./icons";
 
 const STATUS_LABEL: Record<Status, string> = {
@@ -20,6 +20,7 @@ export function ProblemMeta({
   difficulty,
   status,
   nextReviewAt,
+  reviewDays,
 }: {
   id: string;
   title: string;
@@ -28,10 +29,13 @@ export function ProblemMeta({
   difficulty: Difficulty | null;
   status: Status;
   nextReviewAt: Date | null;
+  /** The gap you last chose, so the box is ready with it next time. */
+  reviewDays: number;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [draftTitle, setDraftTitle] = useState(title);
+  const [draftDays, setDraftDays] = useState(reviewDays > 0 ? String(reviewDays) : "");
   const due = describeDue(nextReviewAt);
 
   async function patch(body: Record<string, unknown>) {
@@ -43,13 +47,19 @@ export function ProblemMeta({
     startTransition(() => router.refresh());
   }
 
-  async function review(action: "advance" | "reset") {
+  async function review(body: { days: number } | { action: "reset" }) {
     await fetch(`/api/problems/${id}/review`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify(body),
     });
     startTransition(() => router.refresh());
+  }
+
+  async function schedule() {
+    const days = Number(draftDays);
+    if (!Number.isInteger(days) || days < 0 || days > MAX_REVIEW_DAYS) return;
+    await review({ days });
   }
 
   async function remove() {
@@ -122,20 +132,36 @@ export function ProblemMeta({
 
         <div className="ml-auto flex items-center gap-2">
           {due && <span className="text-xs text-faint">{due}</span>}
-          <button
-            type="button"
-            onClick={() => review("advance")}
-            className="rounded-md border border-border bg-surface px-2 py-1 text-xs text-muted transition-colors hover:text-text"
-          >
-            Mark reviewed
-          </button>
+
+          <div className="flex items-center rounded-md border border-border bg-surface">
+            <input
+              type="number"
+              min={0}
+              max={MAX_REVIEW_DAYS}
+              value={draftDays}
+              onChange={(e) => setDraftDays(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && schedule()}
+              placeholder="7"
+              aria-label="Review in how many days"
+              className="w-12 bg-transparent py-1 pl-2 text-xs outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <span className="py-1 text-xs text-faint">days</span>
+            <button
+              type="button"
+              onClick={schedule}
+              className="py-1 pr-2 pl-2 text-xs text-muted transition-colors hover:text-text"
+            >
+              Set review
+            </button>
+          </div>
+
           {nextReviewAt && (
             <button
               type="button"
-              onClick={() => review("reset")}
+              onClick={() => review({ action: "reset" })}
               className="rounded-md px-1.5 py-1 text-xs text-faint transition-colors hover:text-text"
             >
-              Reset
+              Clear
             </button>
           )}
         </div>

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getNodeDetail, getProblems } from "@/db/queries";
 import type { NodeKind } from "@/db/schema";
 import { getViewMode } from "@/lib/prefs.server";
+import { Breadcrumbs, type Crumb } from "./Breadcrumbs";
 import { Connections } from "./Connections";
 import { FileStrip } from "./FileStrip";
 import { NodeHeader } from "./NodeHeader";
@@ -11,10 +12,17 @@ import { ProblemTable } from "./ProblemTable";
 const PLACEHOLDER: Record<NodeKind, string> = {
   problem: "Write your approach, complexity, edge cases… Type [[ to link.",
   topic: "What's the core idea? When does this pattern apply? Type [[ to link.",
-  bundle: "Describe what these files show. Type [[ to link.",
 };
 
-export async function NodePage({ id, kind }: { id: string; kind: NodeKind }) {
+export async function NodePage({
+  id,
+  kind,
+  trail = [],
+}: {
+  id: string;
+  kind: NodeKind;
+  trail?: Crumb[];
+}) {
   const node = await getNodeDetail(id);
   if (!node || node.kind !== kind) notFound();
 
@@ -22,6 +30,7 @@ export async function NodePage({ id, kind }: { id: string; kind: NodeKind }) {
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6 px-8 py-10">
+      <Breadcrumbs trail={trail} />
       <NodeHeader id={node.id} title={node.title} kind={node.kind} />
 
       <NotesEditor

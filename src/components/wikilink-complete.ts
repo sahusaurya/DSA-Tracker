@@ -10,14 +10,13 @@ type NodeHit = { id: string; kind: string; title: string; slug: string };
 const KIND_LABEL: Record<string, string> = {
   problem: "problem",
   topic: "topic",
-  bundle: "bundle",
 };
 
-async function createNode(kind: "topic" | "bundle", title: string) {
+async function createTopic(title: string) {
   await fetch("/api/nodes", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, title }),
+    body: JSON.stringify({ kind: "topic", title }),
   });
 }
 
@@ -44,21 +43,19 @@ export function wikilinkCompletion(onCreated: () => void) {
 
         const exact = hits.some((h) => h.title.toLowerCase() === typed.toLowerCase());
         if (typed && !exact) {
-          for (const kind of ["topic", "bundle"] as const) {
-            options.push({
-              label: `${typed}`,
-              displayLabel: `Create ${kind} "${typed}"`,
-              detail: `new ${kind}`,
-              type: "keyword",
-              apply: (view, _completion, from, to) => {
-                view.dispatch({
-                  changes: { from, to, insert: `${typed}]]` },
-                  selection: { anchor: from + typed.length + 2 },
-                });
-                void createNode(kind, typed).then(onCreated);
-              },
-            });
-          }
+          options.push({
+            label: `${typed}`,
+            displayLabel: `Create topic "${typed}"`,
+            detail: "new topic",
+            type: "keyword",
+            apply: (view, _completion, from, to) => {
+              view.dispatch({
+                changes: { from, to, insert: `${typed}]]` },
+                selection: { anchor: from + typed.length + 2 },
+              });
+              void createTopic(typed).then(onCreated);
+            },
+          });
         }
 
         return { from: match.from + 2, options, validFor: /^[^\]\n|]*$/ };
