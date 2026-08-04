@@ -3,8 +3,9 @@ import { Breadcrumbs, type Crumb } from "@/components/Breadcrumbs";
 import { Connections } from "@/components/Connections";
 import { FileStrip } from "@/components/FileStrip";
 import { NotesEditor } from "@/components/NotesEditor";
+import { ListMembership } from "@/components/ListMembership";
 import { ProblemMeta } from "@/components/ProblemMeta";
-import { getList, getNodeDetail, getProblemDetail } from "@/db/queries";
+import { getList, getLists, getNodeDetail, getProblemDetail } from "@/db/queries";
 import { getViewMode } from "@/lib/prefs.server";
 
 export default async function ProblemPage({
@@ -50,6 +51,11 @@ export default async function ProblemPage({
         initialNotes={problem.notes}
         initialMode={await getViewMode()}
         wikiTargets={node.wikiTargets}
+      />
+      <ListMembership
+        problemId={problem.id}
+        memberships={problem.lists}
+        allLists={await getLists()}
       />
       <Connections nodeId={problem.id} outgoing={node.outgoing} incoming={node.incoming} />
       <FileStrip nodeId={problem.id} files={problem.files} />
