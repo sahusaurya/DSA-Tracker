@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
+// Bundled from node_modules rather than a CDN, so maths still renders offline.
+import "katex/dist/katex.min.css";
 import "./globals.css";
 import { CommandPalette } from "@/components/CommandPalette";
 import { Sidebar } from "@/components/Sidebar";

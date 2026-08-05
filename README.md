@@ -19,21 +19,27 @@ migrations apply automatically — there's no setup step.
 ## What it does
 
 **Lists.** Group problems however you like: "Blind 75", "Graphs", "Company X prep". A problem can
-sit in several lists at once and still have one set of notes, so nothing gets duplicated.
+sit in several lists at once and still have one set of notes, so nothing gets duplicated. The
+*Lists* section on a problem adds and removes it from lists without deleting the problem.
 
-**Notes.** Every problem, topic, and bundle has a markdown editor with live preview. It autosaves
+**Notes.** Every problem and topic has a markdown editor with live preview. It autosaves
 as you type. Code blocks get syntax highlighting; GFM tables and task lists work.
+
+**Maths.** Write LaTeX between dollar signs: `$O(n \log n)$` inline, or `$$…$$` on its own lines
+for a centred block. It renders with KaTeX, which is bundled rather than fetched, so formulas
+still typeset offline. Dollar signs inside code stay literal.
 
 **Attachments.** Paste a screenshot straight into the editor and it uploads and embeds itself.
 Drag in a PDF or a photo of your handwritten working and it lands in the attachments strip.
 
-**Links and the graph.** Type `[[` anywhere in your notes to link to another problem, a topic, or
-a bundle — with autocomplete, and an option to create the target on the spot. Those links become
+**Links and the graph.** Type `[[` anywhere in your notes to link to another problem or a topic —
+with autocomplete, and an option to create the target on the spot. Those links become
 edges in the graph at `/graph`, where topics act as hubs that cluster related problems. Every page
-also lists what it links to and what references it back.
+also lists what it links to and what references it back, each removable. A topic nothing links to
+any more drops out of the graph, and can be deleted outright from its own page.
 
-**Review.** Hit *Mark reviewed* on a problem and it comes back at 1, 3, 7, 16, then 35 days.
-`/review` shows what's due, most overdue first.
+**Review.** Say how many days until you want to see a problem again — type `4`, hit *Set review*,
+and it resurfaces in four days. `/review` lists everything scheduled, soonest first.
 
 **Find things.** `⌘K` (or `Ctrl+K`) jumps to anything by name. List pages filter by difficulty,
 status, and text — the text filter searches note bodies too, not just titles.
@@ -59,7 +65,7 @@ drizzle/          migrations (committed)
 data/             your database and uploads (gitignored)
 ```
 
-Everything that can appear in the graph is a **node** (`problem`, `topic`, or `bundle`) and every
+Everything that can appear in the graph is a **node** (`problem` or `topic`) and every
 connection is an **edge**, which is why tagging, linking, and the graph are all the same mechanism
 rather than three separate features.
 

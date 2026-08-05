@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
+import rehypeKatex from "rehype-katex";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
 import type { NodeKind } from "@/db/schema";
 import { nodeHref } from "@/lib/nav";
 import { slugify } from "@/lib/text";
@@ -49,8 +51,9 @@ export function MarkdownPreview({
   return (
     <div className="prose-notes">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeHighlight]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        // A malformed formula shows in red where it sits instead of blanking the note.
+        rehypePlugins={[[rehypeKatex, { throwOnError: false, strict: "ignore" }], rehypeHighlight]}
         components={{
           a({ href, children, ...rest }) {
             if (!href?.startsWith(WIKI_PREFIX)) {

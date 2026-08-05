@@ -172,6 +172,21 @@
   margin: 0.85em 0;
 }
 
+/* Maths. A long derivation scrolls on its own rather than widening the page. */
+.prose-notes .katex-display {
+  margin: 1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25em 0;
+}
+/* KaTeX ships its own sizing; keep it in step with the surrounding text. */
+.prose-notes .katex {
+  font-size: 1.05em;
+}
+.prose-notes .katex-error {
+  color: var(--hard);
+}
+
 .prose-notes ul,
 .prose-notes ol {
   padding-left: 1.4em;
