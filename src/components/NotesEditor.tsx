@@ -5,12 +5,15 @@ import { EditorView } from "@codemirror/view";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { baseExtensions } from "./editor-setup";
+import { compressPastedImage } from "@/lib/compress-image";
 import { setCookie } from "@/lib/cookies";
 import type { ViewMode } from "@/lib/prefs";
 import { MarkdownPreview, type WikiTargets } from "./MarkdownPreview";
 import { wikilinkCompletion } from "./wikilink-complete";
 
 type SaveState = "idle" | "pending" | "saved";
+/** Where an attachment came from — pasted pixels, or a file the reader chose. */
+type Origin = "paste" | "drop";
 
 const MODES: ViewMode[] = ["edit", "split", "preview"];
 const SAVE_DELAY = 800;
@@ -65,13 +68,16 @@ export function NotesEditor({
     }
 
     /** Uploads dropped/pasted files and writes markdown for them at the cursor. */
-    async function attach(view: EditorView, fileList: FileList) {
+    async function attach(view: EditorView, fileList: FileList, origin: Origin) {
       const items = Array.from(fileList);
       if (items.length === 0) return;
 
       setUploading((n) => n + items.length);
       try {
-        for (const file of items) {
+        for (const original of items) {
+          // Pasted screenshots get shrunk; a file chosen from disk is kept as it is.
+          const file = origin === "paste" ? await compressPastedImage(original) : original;
+
           const form = new FormData();
           form.append("file", file);
           const res = await fetch(`/api/nodes/${nodeId}/files`, {
@@ -107,14 +113,14 @@ export function NotesEditor({
               const files = event.clipboardData?.files;
               if (!files?.length) return false;
               event.preventDefault();
-              void attach(view, files);
+              void attach(view, files, "paste");
               return true;
             },
             drop(event, view) {
               const files = event.dataTransfer?.files;
               if (!files?.length) return false;
               event.preventDefault();
-              void attach(view, files);
+              void attach(view, files, "drop");
               return true;
             },
           }),

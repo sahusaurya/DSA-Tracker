@@ -32,6 +32,11 @@ still typeset offline. Dollar signs inside code stay literal.
 **Attachments.** Paste a screenshot straight into the editor and it uploads and embeds itself.
 Drag in a PDF or a photo of your handwritten working and it lands in the attachments strip.
 
+Pasted images are re-encoded to WebP in the browser before they upload — a clipboard screenshot
+arrives as lossless PNG, and a megabyte per paste adds up quickly. Files you pick or drag from
+disk are stored byte for byte, on the grounds that choosing a file is a deliberate act and a
+scanned page is worth keeping intact.
+
 **Links and the graph.** Type `[[` anywhere in your notes to link to another problem or a topic —
 with autocomplete, and an option to create the target on the spot. Those links become
 edges in the graph at `/graph`, where topics act as hubs that cluster related problems. Every page
