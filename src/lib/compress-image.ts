@@ -13,6 +13,8 @@
  * fresh clone needs no native image library to build.
  */
 
+import type { ImageFormat } from "./prefs";
+
 /** Beyond this, a screenshot is bigger than any screen it will be read on. */
 const MAX_DIMENSION = 2000;
 const QUALITY = 0.85;
@@ -49,8 +51,15 @@ async function encode(
   return new Promise((resolve) => canvas.toBlob(resolve, "image/webp", QUALITY));
 }
 
-/** Returns a smaller image, or the original whenever shrinking wouldn't pay off. */
-export async function compressPastedImage(file: File): Promise<File> {
+/**
+ * Returns a smaller image, or the original whenever shrinking wouldn't pay off.
+ * Choosing "png" in Settings opts out entirely: the paste is stored exactly as it arrived.
+ */
+export async function compressPastedImage(
+  file: File,
+  format: ImageFormat = "webp",
+): Promise<File> {
+  if (format === "png") return file;
   if (!COMPRESSIBLE.has(file.type)) return file;
 
   let bitmap: ImageBitmap | null = null;

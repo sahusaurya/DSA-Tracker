@@ -5,7 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { setCookie } from "@/lib/cookies";
 import { Backup } from "./Backup";
-import { IconGraph, IconMoon, IconPlus, IconRepeat, IconStack, IconSun } from "./icons";
+import {
+  IconGraph,
+  IconMoon,
+  IconPlus,
+  IconRepeat,
+  IconSettings,
+  IconStack,
+  IconSun,
+} from "./icons";
 
 type ListEntry = {
   id: string;
@@ -122,6 +130,13 @@ export function SidebarNav({ lists }: { lists: ListEntry[] }) {
       </div>
 
       <Backup />
+      <Link
+        href="/settings"
+        className={`mx-2 ${rowClass(pathname.startsWith("/settings"))}`}
+      >
+        <IconSettings />
+        <span className="truncate">Settings</span>
+      </Link>
       <ThemeToggle />
     </nav>
   );

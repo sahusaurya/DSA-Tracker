@@ -17,6 +17,7 @@ import {
   problems,
 } from "./schema";
 import { scheduleInDays } from "@/lib/review";
+import { blobStore } from "@/lib/storage";
 import { slugify } from "@/lib/text";
 import { parseWikilinks } from "@/lib/wikilinks";
 
@@ -315,8 +316,25 @@ export function updateNotes(nodeId: string, notes: string) {
   syncWikilinks(nodeId, notes);
 }
 
-export function deleteNode(id: string) {
+/**
+ * Deletes the node and the bytes behind its attachments.
+ *
+ * The `files` rows cascade away with the node, so their storage keys have to be read
+ * first — once the rows are gone nothing points at those bytes, and they would sit in
+ * `data/uploads` forever, growing a vault that looks like it is being tidied.
+ */
+export async function deleteNode(id: string) {
+  const keys = db
+    .select({ storageKey: files.storageKey })
+    .from(files)
+    .where(eq(files.nodeId, id))
+    .all();
+
   db.delete(nodes).where(eq(nodes.id, id)).run();
+
+  // Best effort: a file already missing from disk shouldn't fail the delete.
+  await Promise.all(keys.map((file) => blobStore.remove(file.storageKey).catch(() => {})));
+  await blobStore.pruneFolder(id);
 }
 
 /* ----------------------------- export & import ---------------------------- */

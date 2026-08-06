@@ -35,7 +35,8 @@ Drag in a PDF or a photo of your handwritten working and it lands in the attachm
 Pasted images are re-encoded to WebP in the browser before they upload — a clipboard screenshot
 arrives as lossless PNG, and a megabyte per paste adds up quickly. Files you pick or drag from
 disk are stored byte for byte, on the grounds that choosing a file is a deliberate act and a
-scanned page is worth keeping intact.
+scanned page is worth keeping intact. **Settings** lets you switch pastes back to PNG if you'd
+rather trade the space for lossless copies.
 
 **Links and the graph.** Type `[[` anywhere in your notes to link to another problem or a topic —
 with autocomplete, and an option to create the target on the spot. Those links become

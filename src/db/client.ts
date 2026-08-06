@@ -5,6 +5,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { reclaimOrphanedUploads } from "./reclaim";
 import * as schema from "./schema";
 import { seedIfEmpty } from "./seed";
 
@@ -21,6 +22,7 @@ function connect() {
   const database = drizzle(sqlite, { schema });
   migrate(database, { migrationsFolder: path.join(process.cwd(), "drizzle") });
   seedIfEmpty(database);
+  reclaimOrphanedUploads(database, UPLOADS_DIR);
   return database;
 }
 

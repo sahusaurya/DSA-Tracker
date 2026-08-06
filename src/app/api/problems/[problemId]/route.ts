@@ -43,6 +43,6 @@ export async function PATCH(request: Request, { params }: Context) {
 
 export async function DELETE(_request: Request, { params }: Context) {
   const { problemId } = await params;
-  deleteNode(problemId);
+  await deleteNode(problemId);
   return Response.json({ ok: true });
 }

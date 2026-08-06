@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { baseExtensions } from "./editor-setup";
 import { compressPastedImage } from "@/lib/compress-image";
-import { setCookie } from "@/lib/cookies";
-import type { ViewMode } from "@/lib/prefs";
+import { getCookie, setCookie } from "@/lib/cookies";
+import { IMAGE_FORMAT_COOKIE, type ViewMode, parseImageFormat } from "@/lib/prefs";
 import { MarkdownPreview, type WikiTargets } from "./MarkdownPreview";
 import { wikilinkCompletion } from "./wikilink-complete";
 
@@ -76,7 +76,11 @@ export function NotesEditor({
       try {
         for (const original of items) {
           // Pasted screenshots get shrunk; a file chosen from disk is kept as it is.
-          const file = origin === "paste" ? await compressPastedImage(original) : original;
+          // Read per paste, so changing the setting takes effect without a reload.
+          const file =
+            origin === "paste"
+              ? await compressPastedImage(original, parseImageFormat(getCookie(IMAGE_FORMAT_COOKIE)))
+              : original;
 
           const form = new FormData();
           form.append("file", file);

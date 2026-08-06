@@ -10,6 +10,8 @@ export interface BlobStore {
   put(nodeId: string, filename: string, data: Buffer): Promise<string>;
   read(key: string): Promise<Buffer>;
   remove(key: string): Promise<void>;
+  /** Drops a node's now-empty folder so `uploads/` doesn't fill with husks. */
+  pruneFolder(nodeId: string): Promise<void>;
 }
 
 /** Keys are `<nodeId>/<uuid><ext>` — never derived from user-supplied paths. */
@@ -43,6 +45,12 @@ class LocalDiskStore implements BlobStore {
 
   async remove(key: string) {
     await fs.rm(resolveKey(key), { force: true });
+  }
+
+  async pruneFolder(nodeId: string) {
+    // rmdir refuses a non-empty directory, which is the behaviour worth having: anything
+    // unaccounted for is left for the startup sweep to judge rather than deleted blind.
+    await fs.rmdir(resolveKey(nodeId)).catch(() => {});
   }
 }
 
