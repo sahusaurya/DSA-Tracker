@@ -61,28 +61,35 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
     navigate.current = router.push;
   }, [router]);
 
+  // Every node and link, always. Filtering dims rather than removes, so the layout the
+  // reader has built a mental picture of stays put — and degree, hence node size, with it.
   const data = useMemo(() => {
-    const visible = nodes.filter((node) => !hidden.has(node.kind));
-    const ids = new Set(visible.map((node) => node.id));
-    const visibleLinks = links.filter((l) => ids.has(l.source) && ids.has(l.target));
-
     const degree = new Map<string, number>();
-    for (const link of visibleLinks) {
+    for (const link of links) {
       degree.set(link.source, (degree.get(link.source) ?? 0) + 1);
       degree.set(link.target, (degree.get(link.target) ?? 0) + 1);
     }
 
     return {
-      nodes: visible.map((node) => ({ ...node, degree: degree.get(node.id) ?? 0 })),
-      links: visibleLinks.map((link) => ({ ...link })),
+      nodes: nodes.map((node) => ({ ...node, degree: degree.get(node.id) ?? 0 })),
+      links: links.map((link) => ({ ...link })),
     };
-  }, [nodes, links, hidden]);
+  }, [nodes, links]);
 
-  const matches = useMemo(() => {
+  /** What stays lit: the kind is showing, and the search term matches. `null` means all of it. */
+  const highlightedIds = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return null;
-    return new Set(data.nodes.filter((n) => n.title.toLowerCase().includes(term)).map((n) => n.id));
-  }, [query, data.nodes]);
+    if (hidden.size === 0 && !term) return null;
+
+    return new Set(
+      data.nodes
+        .filter(
+          (node) =>
+            !hidden.has(node.kind) && (!term || node.title.toLowerCase().includes(term)),
+        )
+        .map((node) => node.id),
+    );
+  }, [query, hidden, data.nodes]);
 
   const paintNode = useCallback(
     (node: GraphNode, ctx: CanvasRenderingContext2D, scale: number) => {
@@ -247,9 +254,9 @@ export function GraphCanvas({ nodes, links }: { nodes: GraphNode[]; links: Graph
   }, [data]);
 
   useEffect(() => {
-    highlighted.current = matches;
+    highlighted.current = highlightedIds;
     instance.current?.nodeCanvasObject(paintNode);
-  }, [matches, paintNode]);
+  }, [highlightedIds, paintNode]);
 
   useEffect(() => {
     const element = host.current;
