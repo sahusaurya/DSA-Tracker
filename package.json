@@ -18,10 +18,10 @@
     "db:studio": "drizzle-kit studio",
     "build:desktop": "next build && node scripts/prepare-standalone.mjs",
     "desktop": "npm run build:desktop && electron .",
-    "dist": "npm run build:desktop && electron-builder",
-    "dist:mac": "npm run build:desktop && electron-builder --mac",
-    "dist:win": "npm run build:desktop && electron-builder --win",
-    "dist:linux": "npm run build:desktop && electron-builder --linux"
+    "dist": "npm run build:desktop && electron-builder --publish never",
+    "dist:mac": "npm run build:desktop && electron-builder --mac --publish never",
+    "dist:win": "npm run build:desktop && electron-builder --win --publish never",
+    "dist:linux": "npm run build:desktop && electron-builder --linux --publish never"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.3",

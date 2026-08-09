@@ -49,7 +49,10 @@ jobs:
           # Unsigned builds: without this electron-builder tries to discover a certificate
           # and fails the job when it finds none.
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Deliberately no GH_TOKEN here. electron-builder reads it as permission to publish
+          # a GitHub release itself, so each build job created its own draft on top of the one
+          # the release job makes below — several drafts per run, assets scattered across them.
+          # Uploading happens in exactly one place: the release job.
 
       - uses: actions/upload-artifact@v4
         with:
