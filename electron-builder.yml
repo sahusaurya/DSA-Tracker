@@ -2,6 +2,11 @@ appId: com.sahusaurya.dsatracker
 productName: DSA Tracker
 copyright: Copyright © Saurya Aditya Sahu
 
+# Pinned rather than derived from productName. The space in "DSA Tracker" is sanitised
+# differently on different code paths, which produced both `DSA-Tracker-0.1.0.dmg` and
+# `DSA.Tracker-0.1.0.dmg` for the same build. A download page should offer one obvious file.
+artifactName: DSA-Tracker-${version}-${arch}.${ext}
+
 directories:
   output: dist
   # Not the conventional `build/`, which .gitignore excludes — the icon must reach CI.
