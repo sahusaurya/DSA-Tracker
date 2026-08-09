@@ -36,7 +36,12 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      # `npm ci` rather than `npm install` would be the usual choice, but npm cannot write a
+      # lock file that satisfies every platform: the wasm32-wasi fallbacks behind Tailwind and
+      # sharp are optional dependencies it never resolves on macOS, so their own dependencies
+      # are absent from the lock and `npm ci` refuses on Windows and Linux. `npm install`
+      # still honours the lock and repairs only what's missing for the platform it's on.
+      - run: npm install --no-audit --no-fund
 
       - name: Build installers
         run: npm run ${{ matrix.command }}
