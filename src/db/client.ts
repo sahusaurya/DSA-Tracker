@@ -26,6 +26,8 @@ function connect() {
   const sqlite = new Database(path.join(DATA_DIR, "app.db"));
   sqlite.pragma("journal_mode = WAL");
   sqlite.pragma("foreign_keys = ON");
+  // Wait for another connection's write rather than failing instantly with SQLITE_BUSY.
+  sqlite.pragma("busy_timeout = 5000");
 
   const database = drizzle(sqlite, { schema });
   migrate(database, { migrationsFolder: MIGRATIONS_DIR });
@@ -34,10 +36,28 @@ function connect() {
   return database;
 }
 
-// Dev hot-reload re-evaluates modules; without this each reload opens a new handle.
-const globalForDb = globalThis as unknown as {
-  __dsaNotesDb?: ReturnType<typeof connect>;
-};
+type Db = ReturnType<typeof connect>;
 
-export const db = globalForDb.__dsaNotesDb ?? connect();
-globalForDb.__dsaNotesDb = db;
+// Dev hot-reload re-evaluates modules; without this each reload opens a new handle.
+const globalForDb = globalThis as unknown as { __dsaNotesDb?: Db };
+
+function connection(): Db {
+  if (!globalForDb.__dsaNotesDb) globalForDb.__dsaNotesDb = connect();
+  return globalForDb.__dsaNotesDb;
+}
+
+/**
+ * Connects on first use, not on import.
+ *
+ * `next build` imports every route to collect its metadata, and it does so in parallel
+ * workers. Connecting at module scope meant each worker raced to create, migrate and seed
+ * the same file, which fails with "database is locked" on a machine that has no vault yet —
+ * a fresh clone, or CI. Nothing about building the app should touch the database at all.
+ */
+export const db = new Proxy({} as Db, {
+  get(_target, property) {
+    const real = connection() as unknown as Record<string | symbol, unknown>;
+    const value = real[property];
+    return typeof value === "function" ? value.bind(real) : value;
+  },
+});
