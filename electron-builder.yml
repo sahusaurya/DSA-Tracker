@@ -1,0 +1,62 @@
+appId: com.sahusaurya.dsatracker
+productName: DSA Tracker
+copyright: Copyright © Saurya Aditya Sahu
+
+directories:
+  output: dist
+  # Not the conventional `build/`, which .gitignore excludes — the icon must reach CI.
+  buildResources: electron/resources
+
+# The application itself is the traced standalone server, shipped as a resource. Only the
+# shell goes in the asar — without the negation electron-builder would also pack every
+# production dependency, duplicating the ~200 MB that standalone already contains.
+# Only the shell goes in the asar. Without the negation electron-builder also packs every
+# production dependency, duplicating what standalone already carries (654 MB, measured).
+files:
+  - electron/**/*
+  - package.json
+  - "!node_modules/**/*"
+  - "!src/**/*"
+  - "!scripts/**/*"
+  - "!.next/**/*"
+  - "!data/**/*"
+
+extraResources:
+  - from: .next/standalone
+    to: standalone
+    filter:
+      - "**/*"
+      # Belt and braces against a developer's own vault reaching an installer.
+      - "!data/**/*"
+  # electron-builder skips anything named node_modules inside a directory copy — it manages
+  # dependencies itself — so the server's own dependencies have to be named explicitly.
+  # Without this the app launches and immediately dies with "Cannot find module 'next'".
+  - from: .next/standalone/node_modules
+    to: standalone/node_modules
+
+asar: true
+
+mac:
+  category: public.app-category.productivity
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+  # Unsigned builds: without this macOS refuses to launch the app at all on Apple Silicon
+  # rather than merely warning, because the ad-hoc signature won't match.
+  identity: null
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+
+linux:
+  category: Development
+  target:
+    - AppImage
+    - deb
