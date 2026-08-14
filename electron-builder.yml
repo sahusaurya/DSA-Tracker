@@ -7,6 +7,8 @@ copyright: Copyright © Saurya Aditya Sahu
 # `DSA.Tracker-0.1.0.dmg` for the same build. A download page should offer one obvious file.
 artifactName: DSA-Tracker-${version}-${arch}.${ext}
 
+afterPack: ./scripts/adhoc-sign.cjs
+
 directories:
   output: dist
   # Not the conventional `build/`, which .gitignore excludes — the icon must reach CI.
@@ -46,8 +48,9 @@ mac:
   target:
     - target: dmg
       arch: [arm64, x64]
-  # Unsigned builds: without this macOS refuses to launch the app at all on Apple Silicon
-  # rather than merely warning, because the ad-hoc signature won't match.
+  # No developer certificate, so electron-builder does no signing of its own. The app is
+  # ad-hoc signed in afterPack instead — see scripts/adhoc-sign.cjs for why that is required
+  # rather than optional.
   identity: null
 
 win:

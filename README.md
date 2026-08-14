@@ -24,6 +24,14 @@ this is a free project — so your system will want reassurance the first time:
   Double-clicking shows a warning instead. Only needed once.
 - **Windows** — click *More info*, then *Run anyway*.
 
+If macOS says the app is **damaged**, you have a build from v0.2.0 or earlier, where the
+signature didn't cover the whole bundle. Download v0.2.1 or later. To open a copy you already
+have, clear the download flag:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/DSA Tracker.app"
+```
+
 Your notes are kept in your account's application-data folder, separate from the app itself,
 so uninstalling or replacing the app never touches them.
 
