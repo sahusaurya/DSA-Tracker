@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { setCookie } from "@/lib/cookies";
+import {
+  SIDEBAR_COLLAPSED_COOKIE,
+  SIDEBAR_DEFAULT_WIDTH,
+  SIDEBAR_MAX_WIDTH,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_WIDTH_COOKIE,
+} from "@/lib/prefs";
 import { Backup } from "./Backup";
 import {
   IconGraph,
@@ -11,6 +18,7 @@ import {
   IconPlus,
   IconRepeat,
   IconSettings,
+  IconSidebar,
   IconStack,
   IconSun,
 } from "./icons";
@@ -28,12 +36,89 @@ const NAV = [
   { href: "/review", label: "Review", Icon: IconRepeat },
 ];
 
-export function SidebarNav({ lists }: { lists: ListEntry[] }) {
+export function SidebarNav({
+  lists,
+  initialWidth,
+  initialCollapsed,
+}: {
+  lists: ListEntry[];
+  initialWidth: number;
+  initialCollapsed: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [width, setWidth] = useState(initialWidth);
+  const [collapsed, setCollapsed] = useState(initialCollapsed);
+  // Collapsed but hovered: shown floating over the page, without giving the space back.
+  const [peeking, setPeeking] = useState(false);
+  const dragging = useRef(false);
+
+  // Kept pure. Writing the cookie inside the updater meant the side effect rode along with
+  // React's development double-invocation, and the two toggles cancelled out.
+  const toggleCollapsed = useCallback(() => {
+    // Both in the handler, so they batch — a peek left open would otherwise keep the
+    // sidebar on screen after collapsing it.
+    setPeeking(false);
+    setCollapsed((wasCollapsed) => !wasCollapsed);
+  }, []);
+
+  useEffect(() => {
+    setCookie(SIDEBAR_COLLAPSED_COOKIE, collapsed ? "1" : "0");
+  }, [collapsed]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      // The same shortcut every editor uses for this.
+      if ((event.metaKey || event.ctrlKey) && event.key === "\\") {
+        event.preventDefault();
+        toggleCollapsed();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [toggleCollapsed]);
+
+  // Drag on the window rather than the handle, so a fast drag can't outrun the 4px target.
+  useEffect(() => {
+    function onMove(event: PointerEvent) {
+      if (!dragging.current) return;
+      event.preventDefault();
+      setWidth(
+        Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, Math.round(event.clientX))),
+      );
+    }
+    function onUp() {
+      if (!dragging.current) return;
+      dragging.current = false;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      // Persist once at the end, not on every pixel of the drag.
+      setWidth((current) => {
+        setCookie(SIDEBAR_WIDTH_COOKIE, String(current));
+        return current;
+      });
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, []);
+
+  function startDrag(event: React.PointerEvent) {
+    event.preventDefault();
+    dragging.current = true;
+    // Keep the resize cursor while the pointer is anywhere on screen mid-drag.
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }
+
+  const showing = !collapsed || peeking;
 
   useEffect(() => {
     if (creating) inputRef.current?.focus();
@@ -63,12 +148,49 @@ export function SidebarNav({ lists }: { lists: ListEntry[] }) {
   }
 
   return (
-    <nav className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-surface">
-      <div className="px-4 pt-5 pb-3">
-        <Link href="/" className="text-sm font-semibold tracking-tight">
-          DSA Notes
-        </Link>
-      </div>
+    <>
+      {/* Collapsed: a thin strip along the edge that peeks the sidebar back on hover. */}
+      {collapsed && (
+        <div
+          className="absolute inset-y-0 left-0 z-30 w-2"
+          onPointerEnter={() => setPeeking(true)}
+          aria-hidden
+        />
+      )}
+
+      {/* Holds the layout column open. Zero-width when collapsed, so the page reclaims it. */}
+      <div
+        className="relative h-full shrink-0"
+        style={{
+          width: collapsed ? 0 : width,
+          transition: dragging.current ? "none" : "width 150ms ease",
+        }}
+        onPointerLeave={() => setPeeking(false)}
+      >
+        <nav
+          className={`absolute inset-y-0 left-0 flex h-full flex-col border-r border-border bg-surface ${
+            showing ? "" : "pointer-events-none"
+          } ${peeking ? "z-40 shadow-2xl" : ""}`}
+          style={{
+            width,
+            transform: showing ? "translateX(0)" : `translateX(-${width}px)`,
+            transition: dragging.current ? "none" : "transform 150ms ease",
+          }}
+        >
+          <div className="flex items-center justify-between px-4 pt-5 pb-3">
+            <Link href="/" className="truncate text-sm font-semibold tracking-tight">
+              DSA Notes
+            </Link>
+            <button
+              type="button"
+              onClick={toggleCollapsed}
+              className="shrink-0 rounded p-1 text-faint transition-colors hover:bg-surface-hover hover:text-text"
+              aria-label="Hide sidebar"
+              title="Hide sidebar (⌘\)"
+            >
+              <IconSidebar className="h-4 w-4" />
+            </button>
+          </div>
 
       <div className="flex flex-col gap-px px-2">
         {NAV.map(({ href, label, Icon }) => (
@@ -129,16 +251,44 @@ export function SidebarNav({ lists }: { lists: ListEntry[] }) {
         )}
       </div>
 
-      <Backup />
-      <Link
-        href="/settings"
-        className={`mx-2 ${rowClass(pathname.startsWith("/settings"))}`}
-      >
-        <IconSettings />
-        <span className="truncate">Settings</span>
-      </Link>
-      <ThemeToggle />
-    </nav>
+          <Backup />
+          <Link
+            href="/settings"
+            className={`mx-2 ${rowClass(pathname.startsWith("/settings"))}`}
+          >
+            <IconSettings />
+            <span className="truncate">Settings</span>
+          </Link>
+          <ThemeToggle />
+
+          {/* Wider than it looks: a 1px border is not a pointer target. */}
+          <div
+            onPointerDown={startDrag}
+            onDoubleClick={() => {
+              setWidth(SIDEBAR_DEFAULT_WIDTH);
+              setCookie(SIDEBAR_WIDTH_COOKIE, String(SIDEBAR_DEFAULT_WIDTH));
+            }}
+            className="absolute inset-y-0 -right-1 w-2 cursor-col-resize hover:bg-accent/30"
+            role="separator"
+            aria-label="Resize sidebar"
+            title="Drag to resize · double-click to reset"
+          />
+        </nav>
+      </div>
+
+      {/* Collapsed: the only way back, since the toggle went with the sidebar. */}
+      {collapsed && !peeking && (
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className="absolute top-4 left-3 z-30 rounded-md border border-border bg-surface/90 p-1.5 text-faint backdrop-blur transition-colors hover:text-text"
+          aria-label="Show sidebar"
+          title="Show sidebar (⌘\)"
+        >
+          <IconSidebar className="h-4 w-4" />
+        </button>
+      )}
+    </>
   );
 }
 

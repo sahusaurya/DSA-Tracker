@@ -449,14 +449,21 @@ export function removeEdge(srcId: string, dstId: string, kind: EdgeKind) {
 }
 
 /**
- * Rewrites this node's wiki-link edges to match its text. Only links naming a node
- * that already exists become edges; manual edges are never touched.
+ * Rewrites this node's wiki-link edges to match its text. Manual edges are never touched.
+ *
+ * Writing `[[Sliding Window]]` *is* how you create that topic. Previously a link to something
+ * that didn't exist yet was silently inert — no topic, no edge, and nothing for the Link
+ * picker to find, so the only way to actually make one was to notice the offer in the
+ * autocomplete. A typo is cheap by comparison: correct it and the edge moves with it, leaving
+ * the mistake unlinked, hidden from the graph and deletable from its own page.
  */
 export function syncWikilinks(nodeId: string, notes: string) {
   const targets = parseWikilinks(notes)
-    .map((title) => findNodeBySlug(slugify(title)))
-    .filter((node) => node !== null && node.id !== nodeId)
-    .map((node) => node!.id);
+    .map((title) => title.trim())
+    .filter((title) => title.length > 0)
+    .map((title) => getOrCreateNode("topic", title))
+    .filter((node) => node.id !== nodeId)
+    .map((node) => node.id);
 
   const wanted = new Set(targets);
   const current = db

@@ -76,6 +76,13 @@ export const IconTrash = (p: IconProps) => (
   </Svg>
 );
 
+export const IconSidebar = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M10 4v16" />
+  </Svg>
+);
+
 export const IconSettings = (p: IconProps) => (
   <Svg {...p}>
     <path d="M4 21v-6M4 11V3M12 21v-9M12 8V3M20 21v-5M20 12V3" />
