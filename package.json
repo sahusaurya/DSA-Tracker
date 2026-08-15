@@ -1,6 +1,6 @@
 {
   "name": "dsa-notes",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "A local-first place to keep your DSA practice.",
   "//productName": "Electron derives the app-data folder name from this, not from `name`. Changing it later would strand an existing vault.",
