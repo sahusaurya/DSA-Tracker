@@ -1,10 +1,76 @@
 # DSA Tracker
 
-A local-first place to keep your DSA practice: problem lists, markdown notes attached to each
-problem, images and files alongside them, and a knowledge graph that builds itself as you write.
+**Your DSA practice, in one place that's actually yours.** Keep the problems you've solved, the
+notes explaining *why* the solution works, the diagrams you drew figuring it out — and watch a
+map of what you know build itself as you write.
 
-Everything lives on your machine — a SQLite file and a folder of uploads. Nothing is sent
-anywhere, and the app works with no internet connection at all.
+Free, offline, and yours. No account, no sync, no server. Just an app.
+
+[**Download for macOS, Windows or Linux →**](../../releases/latest)
+
+![Problem list](docs/screenshots/problems.png)
+
+---
+
+## The problem with how most of us track DSA
+
+You solve a problem. A week later you hit something similar and think *I've done this before* —
+but the insight is gone. It's in a spreadsheet cell, or a comment on a solution you can't find,
+or nowhere at all.
+
+Spreadsheets track *that* you solved something. They're hopeless at *what you learned*. And
+neither a spreadsheet nor a folder of notes can tell you the thing that actually matters: **these
+six problems are all the same idea wearing different clothes.**
+
+## Notes that hold a real explanation
+
+Every problem gets a markdown editor with live preview and autosave. Write your approach, the
+complexity, the edge case that caught you out.
+
+**LaTeX works**, because complexity analysis without maths is painful. Type `$O(n \log n)$` inline,
+or `$$…$$` for a centred block, and it renders as you write.
+
+![Notes with LaTeX](docs/screenshots/notes.png)
+
+**Paste screenshots straight in.** Copy a diagram, hit ⌘V in the editor, and it uploads and embeds
+itself. Photograph your handwritten working and drag it in. Everything stays attached to the
+problem it belongs to.
+
+Screenshots get compressed on the way in — a typical clipboard image drops by around 90% — so a
+year of pasting doesn't quietly turn into gigabytes. If you'd rather keep them lossless, Settings
+has a switch.
+
+## A map that draws itself
+
+Write `[[Sliding Window]]` in your notes and two things happen: the topic is created, and this
+problem is linked to it. That's it. That's the whole system.
+
+Do that while taking notes normally, and after a few weeks you have a genuine map of your own
+understanding — without ever sitting down to "organise" anything.
+
+![Knowledge graph](docs/screenshots/graph.png)
+
+Two problems that both mention `[[Hash Map]]` end up connected through it. Clusters appear where
+you've gone deep; sparse corners show you where you haven't. Click any node to jump straight to it.
+
+## Reviews you actually control
+
+No mysterious algorithm deciding when you see something again. Finished a problem and want it back
+in a fortnight? Type `14`, press **Set review**. The Review tab lists everything scheduled, soonest
+first.
+
+![Review queue](docs/screenshots/review.png)
+
+## Lists for however you're studying
+
+"Blind 75", "Graphs", "Company prep" — a problem can sit in several lists at once and still have
+one set of notes, so nothing gets duplicated or goes stale in one copy.
+
+`⌘K` jumps to anything by name. Filters narrow by difficulty, status, or text — and the text
+filter searches your note bodies, not just titles, so "monotonic" finds the problem where you
+explained it.
+
+---
 
 ## Download
 
@@ -12,28 +78,47 @@ Grab the installer for your system from the [latest release](../../releases/late
 
 | System | File |
 |---|---|
-| macOS (Apple Silicon) | `DSA Tracker-<version>-arm64.dmg` |
-| macOS (Intel) | `DSA Tracker-<version>.dmg` |
-| Windows | `DSA Tracker Setup-<version>.exe` |
-| Linux | `DSA Tracker-<version>.AppImage` or `.deb` |
+| macOS (Apple Silicon) | `DSA-Tracker-<version>-arm64.dmg` |
+| macOS (Intel) | `DSA-Tracker-<version>-x64.dmg` |
+| Windows | `DSA-Tracker-<version>-x64.exe` |
+| Linux | `DSA-Tracker-<version>-x86_64.AppImage` or `-amd64.deb` |
 
-**First launch.** The builds aren't code-signed — a certificate costs money every year, and
-this is a free project — so your system will want reassurance the first time:
+**First launch.** These builds aren't code-signed — a certificate costs money every year, and this
+is a free project — so your system asks for reassurance once:
 
-- **macOS** — right-click the app in Applications and choose *Open*, then *Open* again.
-  Double-clicking shows a warning instead. Only needed once.
+- **macOS** — right-click the app in Applications, choose *Open*, then *Open* again.
 - **Windows** — click *More info*, then *Run anyway*.
 
-If macOS says the app is **damaged**, you have a build from v0.2.0 or earlier, where the
-signature didn't cover the whole bundle. Download v0.2.1 or later. To open a copy you already
-have, clear the download flag:
+<details>
+<summary>macOS says the app is "damaged"</summary>
+
+You have a build from v0.2.0 or earlier, where the signature didn't cover the whole app bundle.
+Download v0.2.1 or later. To open a copy you already have:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/DSA Tracker.app"
 ```
+</details>
 
-Your notes are kept in your account's application-data folder, separate from the app itself,
-so uninstalling or replacing the app never touches them.
+## Your notes are yours
+
+Everything lives on your machine — a SQLite database and a folder of attachments:
+
+| | Location |
+|---|---|
+| macOS | `~/Library/Application Support/DSA Tracker/vault/` |
+| Windows | `%APPDATA%\DSA Tracker\vault\` |
+| Linux | `~/.config/DSA Tracker/vault/` |
+
+Nothing is uploaded anywhere. There is no account and no telemetry. **The app works with the
+network switched off** — the only thing that needs internet is clicking through to a problem's
+website.
+
+And you're not locked in. **Export** produces a zip of plain markdown files with YAML frontmatter
+and wiki-links intact — it opens as an Obsidian vault as-is, and **Import** reads it back. That's
+also how you move your notes between machines.
+
+---
 
 ## Building from source
 
@@ -42,10 +127,9 @@ npm install
 npm run dev
 ```
 
-That opens the app window with hot reload. There is no browser version — the app is the
-desktop app, and `npm run dev` is the development loop for it, not a second way to use it.
-The database and uploads folder are created on first run under `data/`, and migrations apply
-automatically.
+That opens the app window with hot reload. There's no browser version — the app *is* the desktop
+app, and `npm run dev` is the development loop for it. A separate vault under `data/` keeps
+experiments away from your real notes.
 
 To build installers:
 
@@ -53,103 +137,37 @@ To build installers:
 npm run dist
 ```
 
-They land in `dist/`. Each platform must be built on that platform, which is why releases
-come from CI rather than one machine.
+They land in `dist/`. Each platform must be built on that platform, which is why releases come
+from CI rather than one machine.
 
-## A note on the local server
+## How it works
 
-Inside the app, the interface talks to a small server that Next.js runs. It listens on
-`127.0.0.1` — loopback only, invisible to your network — on a port chosen fresh at each
-launch, and **every request must carry a secret generated when the app starts**.
+The interface is a Next.js app; the desktop shell is Electron, which starts that server on a
+private loopback port and points a native window at it. One implementation of every feature, not
+two that drift apart.
 
-That last part matters. An unauthenticated port on `127.0.0.1` is reachable by more than the
-app that opened it: a web page you happen to visit can send it a cross-origin `POST` without
-so much as a preflight, and on a shared computer any other user account can reach it too.
-Neither can obtain the secret, so both get a `403`.
-
-## What it does
-
-**Lists.** Group problems however you like: "Blind 75", "Graphs", "Company X prep". A problem can
-sit in several lists at once and still have one set of notes, so nothing gets duplicated. The
-*Lists* section on a problem adds and removes it from lists without deleting the problem.
-
-**Notes.** Every problem and topic has a markdown editor with live preview. It autosaves
-as you type. Code blocks get syntax highlighting; GFM tables and task lists work.
-
-**Maths.** Write LaTeX between dollar signs: `$O(n \log n)$` inline, or `$$…$$` on its own lines
-for a centred block. It renders with KaTeX, which is bundled rather than fetched, so formulas
-still typeset offline. Dollar signs inside code stay literal.
-
-**Attachments.** Paste a screenshot straight into the editor and it uploads and embeds itself.
-Drag in a PDF or a photo of your handwritten working and it lands in the attachments strip.
-
-Pasted images are re-encoded to WebP in the browser before they upload — a clipboard screenshot
-arrives as lossless PNG, and a megabyte per paste adds up quickly. Files you pick or drag from
-disk are stored byte for byte, on the grounds that choosing a file is a deliberate act and a
-scanned page is worth keeping intact. **Settings** lets you switch pastes back to PNG if you'd
-rather trade the space for lossless copies.
-
-**Links and the graph.** Type `[[` anywhere in your notes to link to another problem or a topic —
-with autocomplete, and an option to create the target on the spot. Those links become
-edges in the graph at `/graph`, where topics act as hubs that cluster related problems. Every page
-also lists what it links to and what references it back, each removable. A topic nothing links to
-any more drops out of the graph, and can be deleted outright from its own page.
-
-**Review.** Say how many days until you want to see a problem again — type `4`, hit *Set review*,
-and it resurfaces in four days. `/review` lists everything scheduled, soonest first.
-
-**Find things.** `⌘K` (or `Ctrl+K`) jumps to anything by name. List pages filter by difficulty,
-status, and text — the text filter searches note bodies too, not just titles.
-
-## Your data
-
-The vault is a SQLite database plus a folder of attachments. Where it lives depends on how you
-run the app:
-
-| | Location |
-|---|---|
-| Desktop app (macOS) | `~/Library/Application Support/DSA Tracker/vault/` |
-| Desktop app (Windows) | `%APPDATA%\DSA Tracker\vault\` |
-| Desktop app (Linux) | `~/.config/DSA Tracker/vault/` |
-| `npm run dev` | `data/` beside the code (gitignored) |
-
-The two are deliberately separate, so experimenting with `npm run dev` can't disturb the notes
-in your installed app. To move a vault between them — or between machines — use **Export** in
-one and **Import** in the other. Back up either by copying the folder, or with Export.
-
-Export produces a zip of plain markdown files with YAML frontmatter, wiki-links intact, plus the
-attachments they reference. It opens as an Obsidian vault as-is, and **Import** reads it back.
-Notes are matched by filename, so importing over an existing vault overwrites matching notes and
-adds fresh copies of attachments — import into an empty `data/` for a clean restore.
-
-## Layout
+That local server is **authenticated with a secret generated at launch**. An unauthenticated port
+on `127.0.0.1` is reachable by more than the app that opened it — a web page you visit can send it
+a cross-origin request, and on a shared computer so can any other account. Neither can obtain the
+secret, so both get a `403`.
 
 ```
 src/app/          pages and API routes
 src/components/   UI
 src/db/           schema.ts, client.ts, queries.ts  ← all data access
-src/lib/          storage, wiki-link parsing, URL parsing, review scheduling
+src/lib/          storage, wiki-link parsing, review scheduling
 electron/         desktop shell: boots the server, owns the window and menus
-drizzle/          migrations (committed)
-data/             your database and uploads when run from source (gitignored)
+drizzle/          migrations
 ```
 
-The desktop app is the same code, not a port: Electron starts the Next.js server on a private
-localhost port and points a native window at it, so there is one implementation of every
-feature rather than two that can drift apart.
-
-Everything that can appear in the graph is a **node** (`problem` or `topic`) and every
-connection is an **edge**, which is why tagging, linking, and the graph are all the same mechanism
-rather than three separate features.
-
-## Scripts
+Everything that can appear in the graph is a **node** (`problem` or `topic`) and every connection
+is an **edge** — which is why tagging, linking and the graph are one mechanism rather than three
+features.
 
 | Command | What it does |
 |---|---|
 | `npm run dev` | Run the app with hot reload |
-| `npm run desktop` | Run the app as it ships, from a production build |
-| `npm run dist` | Build installers for this platform into `dist/` |
-| `npm run build` | Production build (a step inside the two above) |
+| `npm run desktop` | Run it as it ships, from a production build |
+| `npm run dist` | Build installers for this platform |
 | `npm run lint` | ESLint |
 | `npm run db:generate` | Generate a migration after editing `src/db/schema.ts` |
-| `npm run db:studio` | Browse the database |

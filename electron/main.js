@@ -297,7 +297,32 @@ function buildMenu() {
 
 // The vault path comes from the app name, which Electron reads from `productName` in
 // package.json before this file runs — setting it here would be too late to move userData.
-app.whenReady().then(async () => {
+/**
+ * One copy at a time.
+ *
+ * Nothing stopped a second launch before, and a second copy is not harmless: it starts its own
+ * server against the *same* SQLite vault, so two processes write the same notes. It also looks
+ * like the app is refusing to start — you click, and the window that appears belongs to a
+ * different instance than the one you were using. Hand the click to the running copy instead.
+ */
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    if (!mainWindow) {
+      if (serverPort) createWindow(serverPort);
+      return;
+    }
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+  });
+
+  start();
+}
+
+async function start() {
+  await app.whenReady();
   buildMenu();
 
   try {
@@ -313,7 +338,7 @@ app.whenReady().then(async () => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0 && serverPort) createWindow(serverPort);
   });
-});
+}
 
 app.on("before-quit", () => {
   app.isQuitting = true;

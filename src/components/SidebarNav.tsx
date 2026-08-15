@@ -179,7 +179,7 @@ export function SidebarNav({
         >
           <div className="flex items-center justify-between px-4 pt-5 pb-3">
             <Link href="/" className="truncate text-sm font-semibold tracking-tight">
-              DSA Notes
+              DSA Tracker
             </Link>
             <button
               type="button"
