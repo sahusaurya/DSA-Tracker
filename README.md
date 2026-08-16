@@ -83,21 +83,43 @@ Grab the installer for your system from the [latest release](../../releases/late
 | Windows | `DSA-Tracker-<version>-x64.exe` |
 | Linux | `DSA-Tracker-<version>-x86_64.AppImage` or `-amd64.deb` |
 
-**First launch.** These builds aren't code-signed — a certificate costs money every year, and this
-is a free project — so your system asks for reassurance once:
+**First launch.** These builds carry an ad-hoc signature rather than an Apple Developer ID — a
+certificate costs money every year, and this is a free project. macOS therefore blocks the first
+launch, and recent versions of macOS no longer offer the old right-click → *Open* escape hatch for
+ad-hoc-signed apps. Two things that do work:
 
-- **macOS** — right-click the app in Applications, choose *Open*, then *Open* again.
-- **Windows** — click *More info*, then *Run anyway*.
+**macOS — the reliable way.** After dragging the app to Applications, run:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/DSA Tracker.app"
+```
+
+That removes the "downloaded from the internet" flag. Open the app normally afterwards.
+
+**macOS — without a terminal.** Double-click the app so it gets blocked, then go straight to
+**System Settings → Privacy & Security**, scroll to the bottom, and click **Open Anyway**. The
+button only appears for a short while after a blocked attempt, so do it immediately.
+
+**Windows** — click *More info*, then *Run anyway*.
 
 <details>
 <summary>macOS says the app is "damaged"</summary>
 
 You have a build from v0.2.0 or earlier, where the signature didn't cover the whole app bundle.
-Download v0.2.1 or later. To open a copy you already have:
+Download v0.2.1 or later, and use the `xattr` command above on the copy you already have.
+</details>
+
+<details>
+<summary>Building it yourself avoids all of this</summary>
+
+The quarantine flag is attached by your browser, not by the app. An installer you build locally
+never has it, so it opens with no warnings:
 
 ```bash
-xattr -dr com.apple.quarantine "/Applications/DSA Tracker.app"
+npm install && npm run dist:mac
 ```
+
+The app appears in `dist/mac-arm64/`. Drag it to Applications.
 </details>
 
 ## Your notes are yours
